@@ -11,5 +11,5 @@ Basic PHP docker-compose setup
 - git
 ```
 ## Use with Traefik: 
-Enable traefik in docker-compose.yml all services + mount Traefik container to Docker: 
+Enable traefik in docker-compose.yml all services + mount [Traefik container](https://github.com/Heziode/traefik-v2-https-ssl-localhost.git) to Docker: 
 > "traefik.enable=true"
