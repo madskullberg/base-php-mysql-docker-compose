@@ -1,0 +1,83 @@
+version: '3.8'
+services:
+  web:
+    image: my/php:8.1-apache
+    build:
+      context: .
+      dockerfile: PHP.Dockerfile
+    env_file:
+      - .env
+    volumes:
+        - ./app:/var/www/html
+    #security_opt:
+    #  - no-new-privileges:true
+    labels:
+      # Enable this container to be mapped by traefik
+      # For more information, see: https://docs.traefik.io/providers/docker/#exposedbydefault
+      - "traefik.enable=false"
+      # Define the network that should be used
+      - "traefik.docker.network=proxy"
+      # URL to reach this container
+      - "traefik.http.routers.${WEB_ROUTE}.rule=Host(`${WEB_HOST}`)"
+      # Activation of TLS
+      - "traefik.http.routers.${WEB_ROUTE}.tls=true"
+      # If port is different than 80, use the following service:
+      # - "traefik.http.services.<service_name>.loadbalancer.server.port=<port>"
+    networks:
+      - proxy
+      - back-end
+    links:
+      - db
+
+  db:
+    image: mariadb:latest
+    # If container should restart along with Docker uncomment next line
+    # restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 'root'
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_HOST: 'localhost'
+      MARIADB_MYSQL_LOCALHOST_USER: 'local'
+    volumes:
+      # - ./_docker/mysqldata:/var/lib/mysql
+      - mysqldata:/var/lib/mysql
+    networks:
+      - back-end
+    labels:
+      - "traefik.enable=false"
+    # Enable this if you need direct access to the database from host (only one container enabled at a time)
+    #ports:
+    #  - 3306:3306
+
+  adminer:
+    image: adminer:latest
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    # If container should restart along with Docker uncomment next line
+    # restart: always
+    networks:
+      - back-end
+      - proxy
+    labels:
+      # Enable this container to be mapped by traefik
+      # For more information, see: https://docs.traefik.io/providers/docker/#exposedbydefault
+      - "traefik.enable=false"
+      # Define the network that should be used
+      - "traefik.docker.network=proxy"
+      # URL to reach this container
+      - "traefik.http.routers.${DB_ROUTE}.rule=Host(`${DB_HOST}`)"
+      # Activation of TLS
+      - "traefik.http.routers.${DB_ROUTE}.tls=true"
+      # If port is different than 80, use the following service:
+      # - "traefik.http.services.<service_name>.loadbalancer.server.port=<port>"
+
+volumes:
+  mysqldata: {}
+
+networks:
+  proxy:
+    external: true
+  back-end:
+    driver: bridge
